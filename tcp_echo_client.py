@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import tweepy
-import socket, pickle, hashlib, os
+import socket, pickle, hashlib, os, datetime
 from cryptography.fernet import Fernet
 from ibm_watson import TextToSpeechV1
 
@@ -17,7 +17,7 @@ text_to_speech = TextToSpeechV1(
 	url='https://stream.watsonplatform.net/text-to-speech/api'	
 )
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-print('[Checkpoint 01] Connecting to ' + str(host) + 'on port ' + str(port))
+print('[' + str(datetime.datetime.now()) + ']' + ' Connecting to ' + str(host) + 'on port ' + str(port))
 
 # The stream listener receives tweets from the stream,
 # most codes get from: https://realpython.com/twitter-bot-python-tweepy/
@@ -33,7 +33,7 @@ class tweetsStreamListener(tweepy.StreamListener):
 		
 		
 		# Captured Messages
-		print('[Checkpoint 03] New Question: ' + str(status.text))
+		print('[' + str(datetime.datetime.now()) + '] New Question: ' + str(status.text))
 		text=str(status.text)
 		text=text.replace('#ECE4564T20', "")
 		text=text.replace("\"", "")
@@ -43,7 +43,7 @@ class tweetsStreamListener(tweepy.StreamListener):
 		key = Fernet.generate_key()
 		f_question_encrypt = Fernet(key)
 		token = f_question_encrypt.encrypt(text)
-		print ('[Checkpoint 04] Encrypt: Generated Key: ' + str(key) + '| Cipher text: ' + str(token))
+		print ('[' + str(datetime.datetime.now()) + '] Encrypt: Generated Key: ' + str(key) + '| Cipher text: ' + str(token))
 		
 		# CheckSum
 		# Generate a digest for the encrypted message
@@ -57,13 +57,13 @@ class tweetsStreamListener(tweepy.StreamListener):
 		Question_payload_Serialize = pickle.dumps(payload)
 		
 		# Send the payload to server via TCP/IP
-		print('[Checkpoint 05] Sending data: ' + str(Question_payload_Serialize))
+		print('[' + str(datetime.datetime.now()) + '] Sending data: ' + str(Question_payload_Serialize))
 		s.send(Question_payload_Serialize)
 		
 		# Receive data from server and de-serialize
 		data = s.recv(size)
 		answer = pickle.loads(data)
-		print ('[Checkpoint 06] Received data: ' + str(answer))
+		print ('[' + str(datetime.datetime.now()) + '] Received data: ' + str(answer))
 		Client_encrypted_ans = answer[0]
 		Client_Ans_checkSum = answer[1]
 		
@@ -77,7 +77,7 @@ class tweetsStreamListener(tweepy.StreamListener):
 			f_answer_decrypt = Fernet(key)
 			decryptedAns = f_answer_decrypt.decrypt(Client_encrypted_ans)
 			decryptedAns = decryptedAns.decode('utf-8')
-			print ('[Checkpoint 07] Decrypt: Using Key: ' + str(key) + '| Plain text: ' + str(decryptedAns))
+			print ('[' + str(datetime.datetime.now()) + '] Decrypt: Using Key: ' + str(key) + '| Plain text: ' + str(decryptedAns))
 			
 		# IBM text-to-speech API
 			with open('Answer.mp3', 'wb') as audio_file:
@@ -89,7 +89,7 @@ class tweetsStreamListener(tweepy.StreamListener):
 				).get_result().content)
 			
 		# Play audio file by using default audio player	
-		print ('[Checkpoint 08] Speaking Answer: ' + str(decryptedAns))
+		print ('[' + str(datetime.datetime.now()) + '] Speaking Answer: ' + str(decryptedAns))
 		os.system("omxplayer Answer.mp3")
 		s.close()
 		
@@ -105,7 +105,7 @@ auth.set_access_token(Keys.Access, Keys.AccessSecret)
 api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
 
 # Tweepy capturing
-print('[Checkpoint 02] Listening for tweets from Twitter API that contain questions')
+print('[' + str(datetime.datetime.now()) + '] Listening for tweets from Twitter API that contain questions')
 myStreamListener = tweetsStreamListener(api)
 myStream = tweepy.Stream(api.auth, myStreamListener)
 myStream.filter(track=["#ECE4564T20"])
